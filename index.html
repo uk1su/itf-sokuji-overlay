@@ -78,14 +78,20 @@
       }
         .overlay-container.respect-kusaan.team-num-2 .header {
           height: var(--t2-header-height);
+          position: relative;
+          display: flex;
+          align-items: center;
         }
           .overlay-container.respect-kusaan.team-num-2 .header p {
             line-height: calc(10px + var(--t2-header-height));
             font-size: var(--t2-header-font);
           }
           .overlay-container.respect-kusaan.team-num-2 .header .score-dif {
-            width: var(--t2-dif-width);
-            text-align: right;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            text-align: center;
           }
           .overlay-container.respect-kusaan.team-num-2 .header .score-dif.plus {
             color: var(--t2-plus-color);
@@ -93,13 +99,34 @@
           .overlay-container.respect-kusaan.team-num-2 .header .score-dif.minus {
             color: var(--t2-minus-color);
           }
-          .overlay-container.respect-kusaan.team-num-2 .header .space {
-            width: var(--t2-space-width);
-          }
           .overlay-container.respect-kusaan.team-num-2 .header .left-race {
             color: var(--t2-race-color);
-            width: var(--t2-dif-width);
-            text-align: left;
+            position: absolute;
+            right: 20px;
+            width: auto;
+            text-align: right;
+          }
+          .overlay-container.respect-kusaan.team-num-2 .header .roster-emojis {
+            position: absolute;
+            left: 15px;
+            top: 0;
+            height: var(--t2-header-height);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            overflow: hidden;
+            z-index: 2;
+          }
+          .overlay-container.respect-kusaan.team-num-2 .header .roster-emojis img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+          }
+          .overlay-container.respect-kusaan.team-num-2 .header .roster-emojis .unicode-emoji {
+            font-size: 20px;
+            line-height: 24px;
+            display: inline-block;
           }
         .overlay-container.respect-kusaan.team-num-2 .body {
           height: var(--t2-body-height);
@@ -180,8 +207,8 @@
   <div id="team-num-2" class="overlay-container respect-kusaan team-num-2" style="display: flex;">
     <div class="overlay-inner">
       <div class="header">
+        <div class="roster-emojis"></div>
         <p class="score-dif plus">+0</p>
-        <p class="space"></p>
         <p class="left-race">残レース:12</p>
       </div>
       <div class="body">
@@ -277,17 +304,46 @@
           $dif.classList.add(dif.startsWith('+') ? 'plus' : (dif.startsWith('-') ? 'minus' : 'plus'));
           $dif.innerText = dif;
         });
+        const $rosterEmojis = container.querySelector('.roster-emojis');
+        if ($rosterEmojis && Array.isArray(l.emojis)) {
+          $rosterEmojis.innerHTML = '';
+          l.emojis.forEach(em => {
+            if (em.type === 'custom' && em.url) {
+              const img = document.createElement('img');
+              img.src = em.url;
+              img.alt = em.name || '';
+              $rosterEmojis.appendChild(img);
+            } else if (em.text) {
+              const span = document.createElement('span');
+              span.className = 'unicode-emoji';
+              span.innerText = em.text;
+              $rosterEmojis.appendChild(span);
+            }
+          });
+        }
         container.querySelectorAll('.win').forEach(($win) => {
           if (win === 1) {
             $win.style.setProperty('display', 'block');
             $win.style.setProperty('left', '0');
             $win.style.setProperty('right', 'auto');
+            if ($rosterEmojis) {
+              $rosterEmojis.style.setProperty('left', '155px');
+              $rosterEmojis.style.setProperty('max-width', '140px');
+            }
           } else if (win === 2) {
             $win.style.setProperty('display', 'block');
             $win.style.setProperty('left', 'auto');
             $win.style.setProperty('right', '0');
+            if ($rosterEmojis) {
+              $rosterEmojis.style.setProperty('left', '15px');
+              $rosterEmojis.style.setProperty('max-width', '240px');
+            }
           } else {
             $win.style.setProperty('display', 'none');
+            if ($rosterEmojis) {
+              $rosterEmojis.style.setProperty('left', '15px');
+              $rosterEmojis.style.setProperty('max-width', '240px');
+            }
           }
         });
         container.querySelectorAll('.left-race').forEach(($race) => {
