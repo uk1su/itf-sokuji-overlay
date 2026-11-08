@@ -67,6 +67,9 @@
       font-weight: bold;
       font-family: sans-serif;
     }
+    #team-num-2 {
+      display: flex;
+    }
       .overlay-container.respect-kusaan .overlay-inner {
         background: rgba(0,0,0,0.6);
         color: #ffffff;
@@ -174,7 +177,7 @@
   </style>
 </head>
 <body>
-  <div id="team-num-2" class="overlay-container respect-kusaan team-num-2">
+  <div id="team-num-2" class="overlay-container respect-kusaan team-num-2" style="display: flex;">
     <div class="overlay-inner">
       <div class="header">
         <p class="score-dif plus">+0</p>
@@ -210,6 +213,22 @@
 
     let prev_teamNum = -1;
     let prev_left = -1;
+
+    function updateTeamSpans() {
+      document.querySelectorAll('.team-span').forEach(($span) => {
+        const $parent = $span.parentNode;
+        let scaleX = 1;
+        let translateX = 0;
+        if ($span.offsetWidth > $parent.offsetWidth - 20) {
+          scaleX = ($parent.offsetWidth - 20) / $span.offsetWidth;
+          translateX = 10;
+        }
+        $span.style.setProperty(
+          'transform',
+          `translateX(${translateX}px) scaleX(${scaleX})`
+        );
+      });
+    }
 
     function reflectSokuji(l) {
       if (!l || !l.teams) return;
@@ -281,19 +300,7 @@
         });
       }
 
-      container.querySelectorAll('.team-span').forEach(($span) => {
-        const $parent = $span.parentNode;
-        let scaleX = 1;
-        let translateX = 0;
-        if ($span.offsetWidth > $parent.offsetWidth - 20) {
-          scaleX = ($parent.offsetWidth - 20) / $span.offsetWidth;
-          translateX = 10;
-        }
-        $span.style.setProperty(
-          'transform',
-          `translateX(${translateX}px) scaleX(${scaleX})`
-        );
-      });
+      updateTeamSpans();
     }
 
     async function loadAPI() {
@@ -307,6 +314,7 @@
       }
     }
 
+    updateTeamSpans();
     loadAPI();
     setInterval(loadAPI, 2000);
   </script>
