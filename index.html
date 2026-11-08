@@ -264,7 +264,7 @@
 
       if (teamNum === 2) {
         const dif = l.dif || '±0';
-        const win = Boolean(l.win);
+        const win = Number(l.win || 0);
         container.querySelectorAll('.score').forEach(($score, i) => {
           $score.innerText = scores[i] ?? 0;
         });
@@ -278,7 +278,17 @@
           $dif.innerText = dif;
         });
         container.querySelectorAll('.win').forEach(($win) => {
-          $win.style.setProperty('display', win ? 'block' : 'none');
+          if (win === 1) {
+            $win.style.setProperty('display', 'block');
+            $win.style.setProperty('left', '0');
+            $win.style.setProperty('right', 'auto');
+          } else if (win === 2) {
+            $win.style.setProperty('display', 'block');
+            $win.style.setProperty('left', 'auto');
+            $win.style.setProperty('right', '0');
+          } else {
+            $win.style.setProperty('display', 'none');
+          }
         });
         container.querySelectorAll('.left-race').forEach(($race) => {
           $race.innerText = `残レース:${left}`;
