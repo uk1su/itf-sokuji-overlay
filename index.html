@@ -88,10 +88,9 @@
           }
           .overlay-container.respect-kusaan.team-num-2 .header .score-dif {
             position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 150px;
-            text-align: center;
+            left: calc(var(--t2-team-width) + 10px);
+            width: 115px;
+            text-align: left;
           }
           .overlay-container.respect-kusaan.team-num-2 .header .score-dif.plus {
             color: var(--t2-plus-color);
@@ -108,28 +107,28 @@
           }
           .overlay-container.respect-kusaan.team-num-2 .header .roster-emojis {
             position: absolute;
-            left: 15px;
+            left: calc(var(--t2-team-width) + 125px);
+            right: 185px;
             top: 0;
-            width: calc(50% - 90px);
             height: var(--t2-header-height);
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            overflow: hidden;
+            justify-content: space-around;
+            overflow: visible;
             z-index: 2;
           }
           .overlay-container.respect-kusaan.team-num-2 .header .roster-emojis img {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            object-fit: cover;
-            flex-shrink: 1;
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            border-radius: 4px;
+            flex-shrink: 0;
           }
           .overlay-container.respect-kusaan.team-num-2 .header .roster-emojis .unicode-emoji {
-            font-size: 32px;
-            line-height: 38px;
+            font-size: 26px;
+            line-height: 32px;
             display: inline-block;
-            flex-shrink: 1;
+            flex-shrink: 0;
           }
         .overlay-container.respect-kusaan.team-num-2 .body {
           height: var(--t2-body-height);
@@ -329,35 +328,9 @@
             $win.style.setProperty('display', 'block');
             $win.style.setProperty('left', '0');
             $win.style.setProperty('right', 'auto');
-            if ($rosterEmojis) {
-              $rosterEmojis.style.setProperty('left', '155px');
-              $rosterEmojis.style.setProperty('width', 'calc(50% - 165px)');
-              $rosterEmojis.style.setProperty('justify-content', 'space-around');
-              $rosterEmojis.querySelectorAll('img').forEach(img => {
-                img.style.setProperty('width', '22px');
-                img.style.setProperty('height', '22px');
-              });
-              $rosterEmojis.querySelectorAll('.unicode-emoji').forEach(span => {
-                span.style.setProperty('font-size', '18px');
-                span.style.setProperty('line-height', '22px');
-              });
-            }
           } else {
             // win === 2 (相手チーム勝利) または win === 0 (未決着) の時は win! を非表示
             $win.style.setProperty('display', 'none');
-            if ($rosterEmojis) {
-              $rosterEmojis.style.setProperty('left', '15px');
-              $rosterEmojis.style.setProperty('width', 'calc(50% - 90px)');
-              $rosterEmojis.style.setProperty('justify-content', 'space-between');
-              $rosterEmojis.querySelectorAll('img').forEach(img => {
-                img.style.setProperty('width', '38px');
-                img.style.setProperty('height', '38px');
-              });
-              $rosterEmojis.querySelectorAll('.unicode-emoji').forEach(span => {
-                span.style.setProperty('font-size', '32px');
-                span.style.setProperty('line-height', '38px');
-              });
-            }
           }
         });
         container.querySelectorAll('.left-race').forEach(($race) => {
