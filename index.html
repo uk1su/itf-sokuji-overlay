@@ -67,9 +67,6 @@
       font-weight: bold;
       font-family: sans-serif;
     }
-    #team-num-2 {
-      display: flex;
-    }
       .overlay-container.respect-kusaan .overlay-inner {
         background: rgba(0,0,0,0.6);
         color: #ffffff;
@@ -228,7 +225,7 @@
   </style>
 </head>
 <body>
-  <div id="team-num-2" class="overlay-container respect-kusaan team-num-2" style="display: flex;">
+  <div id="team-num-2" class="overlay-container respect-kusaan team-num-2" style="display: none;">
     <div class="overlay-inner">
       <div class="header">
         <div class="roster-emojis"></div>
@@ -322,7 +319,34 @@
       };
     }
 
+    function hideOverlay() {
+      document.querySelectorAll('.overlay-container').forEach((el) => {
+        el.style.display = 'none';
+      });
+    }
+
+    function isPayloadActive(raw) {
+      if (!raw || !Array.isArray(raw.teams)) return false;
+      if (typeof raw.active === 'boolean' && !raw.active) return false;
+      if (raw.active_until) {
+        const until = Date.parse(raw.active_until);
+        if (!Number.isNaN(until) && Date.now() > until) return false;
+      }
+      if (typeof raw.active !== 'boolean') {
+        const raceCount = Number(
+          raw.race_count ?? (Array.isArray(raw.races) ? raw.races.length : 0)
+        );
+        const left = Number(raw.left ?? 12);
+        if (raceCount === 0 && left === 12) return false;
+      }
+      return true;
+    }
+
     function reflectSokuji(raw) {
+      if (!isPayloadActive(raw)) {
+        hideOverlay();
+        return;
+      }
       const l = normalizeOverlayPayload(raw);
       if (!l || !l.teams) return;
       const teams = l.teams;
@@ -426,16 +450,18 @@
     }
 
     function pickCurrentPayload(war, lounge) {
-      if (war && !lounge) return war;
-      if (lounge && !war) return lounge;
-      if (!war && !lounge) return null;
-      const warTime = Date.parse(war.updated_at || '') || 0;
-      const loungeTime = Date.parse(lounge.updated_at || '') || 0;
+      const warActive = isPayloadActive(war) ? war : null;
+      const loungeActive = isPayloadActive(lounge) ? lounge : null;
+      if (warActive && !loungeActive) return warActive;
+      if (loungeActive && !warActive) return loungeActive;
+      if (!warActive && !loungeActive) return null;
+      const warTime = Date.parse(warActive.updated_at || '') || 0;
+      const loungeTime = Date.parse(loungeActive.updated_at || '') || 0;
       if (warTime && loungeTime) {
-        return loungeTime >= warTime ? lounge : war;
+        return loungeTime >= warTime ? loungeActive : warActive;
       }
-      if (loungeTime && !warTime) return lounge;
-      return war;
+      if (loungeTime && !warTime) return loungeActive;
+      return warActive;
     }
 
     async function loadAPI() {
@@ -456,9 +482,13 @@
           warRes.status === 'fulfilled' ? warRes.value : null,
           loungeRes.status === 'fulfilled' ? loungeRes.value : null
         );
-        if (chosen) reflectSokuji(chosen);
+        if (chosen) {
+          reflectSokuji(chosen);
+        } else {
+          hideOverlay();
+        }
       } catch (err) {
-        // silent retry on interval
+        hideOverlay();
       }
     }
 
