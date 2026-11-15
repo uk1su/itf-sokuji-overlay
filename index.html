@@ -27,7 +27,7 @@
       --t6-dif-font       : 25px;
       --t6-race-font      : 25px;
       --t6-team-width     : calc(780px / 6);
-      --t6-dif-space-width: calc(var(--t6-team-width) / 2);
+      --t6-dif-space-width: calc(var(--team-width) / 2);
       --t6-team-height    : 45px;
       --t6-dif-height     : 35px;
       --t6-border-left    : 1px solid #666666;
@@ -169,27 +169,16 @@
           background: var(--t2-win-background);
           color: var(--t2-win-color);
         }
-        #team-num-3 {
-          --t6-team-width: 195px;
-        }
-        #team-num-4 {
-          --t6-team-width: calc(780px / 4);
-        }
         .overlay-container.respect-kusaan.team-num-6 p {
           width: var(--t6-team-width);
           font-size: var(--t6-team-font);
-          flex: 0 0 auto;
         }
         .overlay-container.respect-kusaan.team-num-6 .teams {
           height: var(--t6-team-height);
-          display: flex;
-          align-items: center;
         }
         .overlay-container.respect-kusaan.team-num-6 .scores {
           height: var(--t6-team-height);
           border-top: var(--t6-border-top);
-          display: flex;
-          align-items: center;
         }
           .overlay-container.respect-kusaan.team-num-6 .teams p:first-child,
           .overlay-container.respect-kusaan.team-num-6 .scores p:first-child {
@@ -202,8 +191,6 @@
           }
         .overlay-container.respect-kusaan.team-num-6 .difs {
           height: var(--t6-dif-height);
-          display: flex;
-          align-items: center;
         }
           .overlay-container.respect-kusaan.team-num-6 .difs p {
             line-height: var(--t6-dif-height);
@@ -216,8 +203,6 @@
           position: absolute;
           right: 0;
           bottom: 0;
-          height: var(--t6-dif-height);
-          line-height: var(--t6-dif-height);
           color: var(--t2-race-color);
           font-size: var(--t6-race-font);
           margin-right: 10px;
@@ -252,14 +237,38 @@
     const overlayIndex = pathParts.lastIndexOf('overlay');
     const pathKey = overlayIndex >= 0 ? (pathParts[overlayIndex + 1] || '') : '';
     const key = params.get('key') || pathKey;
-    const mode = (params.get('mode') || '').toLowerCase();
     const apiBase = (
       params.get('api') || 'https://140-245-94-102.sslip.io'
     ).replace(/\/+$/, '');
-    const warEndpoint = key
+    const endpoint = key
       ? `${apiBase}/api/v1/sokuji/${encodeURIComponent(key)}`
       : `${apiBase}/api/v1/sokuji/current`;
-    const loungeEndpoint = `${apiBase}/api/v1/lounge/current`;
+
+    let prev_teamNum = -1;
+    let prev_left = -1;
+
+    function hideOverlay() {
+      document.querySelectorAll('.overlay-container').forEach((el) => {
+        el.style.display = 'none';
+      });
+      prev_teamNum = -1;
+      prev_left = -1;
+    }
+
+    function isWarActive(l) {
+      if (!l || !Array.isArray(l.teams)) return false;
+      if (typeof l.active === 'boolean' && !l.active) return false;
+      if (l.updated_at) {
+        const updatedMs = Date.parse(l.updated_at);
+        const now = Date.now();
+        const left = Number(l.left ?? 12);
+        if (!Number.isNaN(updatedMs)) {
+          if (left <= 0 && now - updatedMs > 180 * 1000) return false;
+          if (now - updatedMs > 2 * 60 * 60 * 1000) return false;
+        }
+      }
+      return true;
+    }
 
     function updateTeamSpans() {
       document.querySelectorAll('.team-span').forEach(($span) => {
@@ -279,88 +288,32 @@
       });
     }
 
-    function normalizeOverlayPayload(raw) {
-      if (!raw || !Array.isArray(raw.teams)) return null;
-      if (Array.isArray(raw.scores)) {
-        return raw;
-      }
-      const teams = raw.teams.map((t) => String(t).trim()).filter(Boolean);
-      const totals = raw.totals || {};
-      const entries = teams.map((tag, idx) => ({
-        tag,
-        score: Number(totals[tag] ?? 0),
-        idx,
-      }));
-      const totalRaces = Number(raw.total_races ?? 12);
-      const raceCount = Number(
-        raw.race_count ?? (Array.isArray(raw.races) ? raw.races.length : 0)
-      );
-      const left =
-        raw.left != null ? Number(raw.left) : Math.max(0, totalRaces - raceCount);
-      if (entries.length === 2) {
-        const s0 = entries[0].score;
-        const s1 = entries[1].score;
-        const delta = s0 - s1;
-        return {
-          ...raw,
-          teams: [entries[0].tag, entries[1].tag],
-          scores: [s0, s1],
-          dif: delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : '±0',
-          win: left === 0 ? (s0 > s1 ? 1 : s1 > s0 ? 2 : 0) : 0,
-          left,
-        };
-      }
-      entries.sort((a, b) => (b.score - a.score) || (a.idx - b.idx));
-      return {
-        ...raw,
-        teams: entries.map((e) => e.tag),
-        scores: entries.map((e) => e.score),
-        left,
-      };
-    }
-
-    function hideOverlay() {
-      document.querySelectorAll('.overlay-container').forEach((el) => {
-        el.style.display = 'none';
-      });
-    }
-
-    function isPayloadActive(raw) {
-      if (!raw || !Array.isArray(raw.teams)) return false;
-      if (typeof raw.active === 'boolean' && !raw.active) return false;
-      const now = Date.now();
-      if (raw.active_until) {
-        const until = Date.parse(raw.active_until);
-        if (!Number.isNaN(until) && now > until) return false;
-      }
-      const updatedMs = raw.updated_at ? Date.parse(raw.updated_at) : NaN;
-      const raceCount = Number(
-        raw.race_count ?? (Array.isArray(raw.races) ? raw.races.length : 0)
-      );
-      const left = Number(raw.left ?? 12);
-      if (!Number.isNaN(updatedMs)) {
-        // Legacy / forgotten-end guard: hide finished 12R matches after grace window,
-        // and hide stale abandoned sessions after 2 hours with no updates.
-        if (left <= 0 && now - updatedMs > 180 * 1000) return false;
-        if (now - updatedMs > 2 * 60 * 60 * 1000) return false;
-      }
-      if (typeof raw.active !== 'boolean') {
-        if (raceCount === 0 && left === 12) return false;
-      }
-      return true;
-    }
-
-    function reflectSokuji(raw) {
-      if (!isPayloadActive(raw)) {
+    function reflectSokuji(l) {
+      if (!isWarActive(l)) {
         hideOverlay();
         return;
       }
-      const l = normalizeOverlayPayload(raw);
-      if (!l || !l.teams) return;
       const teams = l.teams;
       const scores = l.scores || [0, 0];
       const left = l.left ?? 12;
       const teamNum = teams.length;
+
+      if (prev_teamNum === -1) {
+        prev_teamNum = teamNum;
+      } else if (prev_teamNum !== teamNum && teamNum !== -1) {
+        location.reload();
+        return;
+      }
+
+      if (prev_left === 0 && left !== 0) {
+        location.reload();
+        return;
+      } else if (prev_left - left > 1) {
+        location.reload();
+        return;
+      } else {
+        prev_left = left;
+      }
 
       const targetId = `team-num-${teamNum}`;
       document.querySelectorAll('.overlay-container').forEach(el => {
@@ -451,50 +404,12 @@
       updateTeamSpans();
     }
 
-    async function fetchJson(url) {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    }
-
-    function pickCurrentPayload(war, lounge) {
-      const warActive = isPayloadActive(war) ? war : null;
-      const loungeActive = isPayloadActive(lounge) ? lounge : null;
-      if (warActive && !loungeActive) return warActive;
-      if (loungeActive && !warActive) return loungeActive;
-      if (!warActive && !loungeActive) return null;
-      const warTime = Date.parse(warActive.updated_at || '') || 0;
-      const loungeTime = Date.parse(loungeActive.updated_at || '') || 0;
-      if (warTime && loungeTime) {
-        return loungeTime >= warTime ? loungeActive : warActive;
-      }
-      if (loungeTime && !warTime) return loungeActive;
-      return warActive;
-    }
-
     async function loadAPI() {
       try {
-        if (key || mode === 'war') {
-          reflectSokuji(await fetchJson(warEndpoint));
-          return;
-        }
-        if (mode === 'lounge') {
-          reflectSokuji(await fetchJson(loungeEndpoint));
-          return;
-        }
-        const [warRes, loungeRes] = await Promise.allSettled([
-          fetchJson(warEndpoint),
-          fetchJson(loungeEndpoint),
-        ]);
-        const chosen = pickCurrentPayload(
-          warRes.status === 'fulfilled' ? warRes.value : null,
-          loungeRes.status === 'fulfilled' ? loungeRes.value : null
-        );
-        if (chosen) {
-          reflectSokuji(chosen);
-        } else {
-          hideOverlay();
-        }
+        const res = await fetch(endpoint, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        reflectSokuji(data);
       } catch (err) {
         hideOverlay();
       }
