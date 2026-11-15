@@ -328,15 +328,23 @@
     function isPayloadActive(raw) {
       if (!raw || !Array.isArray(raw.teams)) return false;
       if (typeof raw.active === 'boolean' && !raw.active) return false;
+      const now = Date.now();
       if (raw.active_until) {
         const until = Date.parse(raw.active_until);
-        if (!Number.isNaN(until) && Date.now() > until) return false;
+        if (!Number.isNaN(until) && now > until) return false;
+      }
+      const updatedMs = raw.updated_at ? Date.parse(raw.updated_at) : NaN;
+      const raceCount = Number(
+        raw.race_count ?? (Array.isArray(raw.races) ? raw.races.length : 0)
+      );
+      const left = Number(raw.left ?? 12);
+      if (!Number.isNaN(updatedMs)) {
+        // Legacy / forgotten-end guard: hide finished 12R matches after grace window,
+        // and hide stale abandoned sessions after 2 hours with no updates.
+        if (left <= 0 && now - updatedMs > 180 * 1000) return false;
+        if (now - updatedMs > 2 * 60 * 60 * 1000) return false;
       }
       if (typeof raw.active !== 'boolean') {
-        const raceCount = Number(
-          raw.race_count ?? (Array.isArray(raw.races) ? raw.races.length : 0)
-        );
-        const left = Number(raw.left ?? 12);
         if (raceCount === 0 && left === 12) return false;
       }
       return true;
